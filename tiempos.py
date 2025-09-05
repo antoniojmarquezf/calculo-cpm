@@ -27,15 +27,14 @@ duraciones = {
 }
 
 # =========================
-# Cálculo CPM (automático para corrección)
+# Cálculo CPM (automático)
 # =========================
-# Crear grafo dirigido
 G = nx.DiGraph()
 for act, succs in sucesores.items():
     for s in succs:
         G.add_edge(act, s)
 
-# Forward Pass (Inicio/Fin temprano)
+# Forward Pass
 ES, EF = {}, {}
 for act in nx.topological_sort(G):
     if not list(G.predecessors(act)):
@@ -44,7 +43,7 @@ for act in nx.topological_sort(G):
         ES[act] = max(EF[p] for p in G.predecessors(act))
     EF[act] = ES[act] + duraciones[act]
 
-# Backward Pass (Inicio/Fin tardío)
+# Backward Pass
 LS, LF = {}, {}
 max_time = max(EF.values())
 for act in reversed(list(nx.topological_sort(G))):
@@ -63,9 +62,8 @@ ruta_critica = [a for a, h in slack.items() if h == 0]
 # =========================
 st.title("🎯 Juego CPM - Método de la Ruta Crítica")
 
-st.markdown("Ingresa tus cálculos de Inicio/Fin Temprano y Tardío para cada actividad:")
+st.markdown("👉 Ingresa tus cálculos de Inicio/Fin Temprano y Tardío para cada actividad:")
 
-# Formulario de respuestas del estudiante
 respuestas = {}
 for act in duraciones.keys():
     st.subheader(f"Actividad {act} (Duración {duraciones[act]} días)")
@@ -75,22 +73,37 @@ for act in duraciones.keys():
     lf = st.number_input(f"Fin Tardío (LF) {act}", min_value=0, key=f"LF_{act}")
     respuestas[act] = {"ES": es, "EF": ef, "LS": ls, "LF": lf}
 
-# Botón para corregir
+# Botón de corrección
 if st.button("✅ Verificar respuestas"):
     st.subheader("📊 Corrección")
+
+    errores = []
     for act in duraciones.keys():
+        correcto = {"ES": ES[act], "EF": EF[act], "LS": LS[act], "LF": LF[act]}
+        if respuestas[act] != correcto:
+            errores.append(act)
+
         st.write(f"**{act}**")
         st.write(f"- Tu respuesta: {respuestas[act]}")
-        st.write(f"- Correcto: ES={ES[act]}, EF={EF[act]}, LS={LS[act]}, LF={LF[act]}")
+        st.write(f"- Correcto: {correcto}")
+        st.markdown("---")
 
+    # Resumen de resultados
+    if errores:
+        st.error(f"❌ Hubo errores en las siguientes actividades: {', '.join(errores)}")
+    else:
+        st.success("✅ ¡Perfecto! Todos los tiempos son correctos 🎉")
+
+    # Mostrar ruta crítica
     st.subheader("🚀 Ruta Crítica")
     st.write(f"Actividades en la ruta crítica: {', '.join(ruta_critica)}")
 
-    # Dibujar grafo
-    pos = nx.spring_layout(G)
+    # Dibujar grafo con ruta crítica en rojo
+    pos = nx.spring_layout(G, seed=42)
     colors = ["red" if n in ruta_critica else "lightblue" for n in G.nodes()]
-    nx.draw(G, pos, with_labels=True, node_color=colors, node_size=1500, font_size=10)
-    nx.draw_networkx_edge_labels(G, pos, edge_labels={(u, v): "" for u, v in G.edges()})
-    st.pyplot(plt)
+    fig, ax = plt.subplots()
+    nx.draw(G, pos, with_labels=True, node_color=colors, node_size=1500, font_size=10, ax=ax)
+    st.pyplot(fig)
+
 
 
