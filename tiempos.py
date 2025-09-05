@@ -7,25 +7,23 @@ import matplotlib.pyplot as plt
 # Datos del proyecto
 # =========================
 sucesores = {
-    "A": ["B"],
-    "C": ["D"],
-    "B": ["E"],
-    "D": ["F", "G"],
-    "F": ["H"],
-    "E": [],
-    "G": [],
-    "H": []
+    "A": ["B", "C"],   # Diseñar planos
+    "B": ["D"],        # Comprar materiales
+    "C": ["D"],        # Construcción de cimentación
+    "D": ["E", "F"],   # Montaje de bomba
+    "E": ["G"],        # Conexión eléctrica
+    "F": ["G"],        # Instalación de tuberías
+    "G": []            # Pruebas finales
 }
 
 duraciones = {
     "A": 3,
-    "B": 2,
-    "C": 3,
-    "D": 1,
-    "E": 2,
-    "F": 1,
-    "G": 4,
-    "H": 2
+    "B": 4,
+    "C": 5,
+    "D": 2,
+    "E": 3,
+    "F": 4,
+    "G": 2
 }
 
 # =========================
@@ -40,10 +38,10 @@ for act, succs in sucesores.items():
 # Forward Pass (Inicio/Fin temprano)
 ES, EF = {}, {}
 for act in nx.topological_sort(G):
-    if act not in G.predecessors(act):
-        ES[act] = max([EF[p] for p in G.predecessors(act)], default=0)
-    else:
+    if not list(G.predecessors(act)):
         ES[act] = 0
+    else:
+        ES[act] = max(EF[p] for p in G.predecessors(act))
     EF[act] = ES[act] + duraciones[act]
 
 # Backward Pass (Inicio/Fin tardío)
@@ -51,7 +49,7 @@ LS, LF = {}, {}
 max_time = max(EF.values())
 for act in reversed(list(nx.topological_sort(G))):
     if list(G.successors(act)):
-        LF[act] = min([LS[s] for s in G.successors(act)])
+        LF[act] = min(LS[s] for s in G.successors(act))
     else:
         LF[act] = max_time
     LS[act] = LF[act] - duraciones[act]
@@ -70,7 +68,7 @@ st.markdown("Ingresa tus cálculos de Inicio/Fin Temprano y Tardío para cada ac
 # Formulario de respuestas del estudiante
 respuestas = {}
 for act in duraciones.keys():
-    st.subheader(f"Actividad {act} (Duración {duraciones[act]}h)")
+    st.subheader(f"Actividad {act} (Duración {duraciones[act]} días)")
     es = st.number_input(f"Inicio Temprano (ES) {act}", min_value=0, key=f"ES_{act}")
     ef = st.number_input(f"Fin Temprano (EF) {act}", min_value=0, key=f"EF_{act}")
     ls = st.number_input(f"Inicio Tardío (LS) {act}", min_value=0, key=f"LS_{act}")
@@ -92,6 +90,7 @@ if st.button("✅ Verificar respuestas"):
     pos = nx.spring_layout(G)
     colors = ["red" if n in ruta_critica else "lightblue" for n in G.nodes()]
     nx.draw(G, pos, with_labels=True, node_color=colors, node_size=1500, font_size=10)
-    nx.draw_networkx_edge_labels(G, pos, edge_labels={(u, v): duraciones[u] for u, v in G.edges()})
+    nx.draw_networkx_edge_labels(G, pos, edge_labels={(u, v): "" for u, v in G.edges()})
     st.pyplot(plt)
+
 
